@@ -38,9 +38,10 @@ class MainWindow(tk.Frame):
                 # get store name values from connection
                 SQLCommand = ("select [SiteName] from [POSLabor].[dbo].[NBO_Sites]")
                 cursor.execute(SQLCommand)
-                siteNums = cursor.fetchall()
+                global siteNames
+                siteNames = cursor.fetchall()
 
-                w = ttk.OptionMenu(row, LocationVariable, *siteNums)
+                w = ttk.OptionMenu(row, LocationVariable, "Site Name", *siteNames)
             # endregion LocationEntry
 
             # region PayGroupEntry
@@ -55,7 +56,7 @@ class MainWindow(tk.Frame):
                 cursor.execute(SQLCommand)
                 payGroups = cursor.fetchall()
                 
-                w = ttk.OptionMenu(row, PayGroupVariable, None, *payGroups)
+                w = ttk.OptionMenu(row, PayGroupVariable, "Payroll Group Name", *payGroups)
             # endregion PayGroupEntry
 
             # region TipShareEntry
@@ -74,7 +75,7 @@ class MainWindow(tk.Frame):
                 PayCycleVariable = tk.StringVar(root)
                 #PayCycleVariable.set("Pay Cycle") # default value
 
-                w = ttk.OptionMenu(row, PayCycleVariable, None, *range(1,5))
+                w = ttk.OptionMenu(row, PayCycleVariable, "Pay Cycle", *range(1,5))
             # endregion PayCycleEntry
 
             # region ADPStoreCodeEntry
@@ -129,39 +130,58 @@ class MainWindow(tk.Frame):
     def submit(self, cursor):
         loc = LocationVariable.get()
         loc = loc.strip("(\",)")
+        #loc = convert SiteName to corresponding siteNumber
         payg = PayGroupVariable.get()
         payg = payg.strip("(',)")
         tip = int(TipShareVariable.get())
         payc = PayCycleVariable.get()
         adp = ADPStoreCodeVariable.get()
-
-        print (loc + "\n" + payg + "\n" + str(tip) + "\n" + payc + "\n" + adp)
-        #SQLCommand = ""
-        #cursor.execute(SQLCommand)
-        #connection.commit()    # save to table
-        connection.rollback()
-        self.destroy
+        insertSQL(loc, payg, tip, payc, adp)        
 
    
     def submitEdit(self, NewPayGroupName):
         # !!! change PayGroupVariable to read-only NewPayGroupName
-            # !!! find way to access PayGroupVariable??
+        PayGroupVariable.set(str(NewPayGroupName))
+        # read-only?
+
         # !!! check if NewPayGroupName already exists in NBO_Sites
         # !!! if no, begin addition process
             # !!! create SQL statement to insert data
         # !!! if yes, begin update process
             # !!! fill entries with pre-existing data from NBO_PayCycleSetup
-        # !!! create Submit Changes button, calls submitChanges that takes in a SQL statement with current values using .get (I hope)
-        submitButton.config(text = "Submit Changes", command = lambda: submitChanges(cursor))
-        
+        flag = False
+        for name in siteNames:
+            if name == str(NewPayGroupName):
+                flag == True
+        if flag == True: # Update fields, still unsure
+            pass
+
+        # !!! create Submit Changes button, calls submitChanges
+        submitButton.config(text = "Submit Changes", command = lambda: submitChanges(cursor))        
         self.destroy()
 
     
     def submitChanges(self, cursor):
-        # does practically the same thing as submit(), might be able to get rid of this one
+        loc = LocationVariable.get()
+        loc = loc.strip("(\",)")
+        #loc = convert SiteName to corresponding siteNumber
+        payg = PayGroupVariable.get()
+        payg = payg.strip("(',)")
+        tip = int(TipShareVariable.get())
+        payc = PayCycleVariable.get()
+        adp = ADPStoreCodeVariable.get()
+        insertSQL(loc, payg, tip, payc, adp) 
+
+
+    def insertSQL(self, loc, payg, tip, payc, adp):
+        SQLCommand = "DECLARE @RT INT \
+                      EXECUTE @RT = dbo.pr_NBO_PayCycleSetup_ADD "+loc+", "+payg+", "+ tip +", "+adp+", 1, "+ payc +" \
+                      PRINT @RT" # command to add data 
         cursor.execute(SQLCommand)
-        connection.commit()
+        #connection.commit()    # save to table
+        connection.rollback()   # undo command
         self.destroy()
+
 
 #region Main
 if __name__ == "__main__":
