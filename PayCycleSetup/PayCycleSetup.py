@@ -56,6 +56,8 @@ class MainWindow(tk.Frame):
                 cursor.execute(SQLCommand)
                 global payGroups
                 payGroups = cursor.fetchall()
+                global payGroupCount 
+                payGroupCount = len(payGroups)
                 
                 w = ttk.OptionMenu(row, PayGroupVariable, "Payroll Group Name", *payGroups)
             # endregion PayGroupEntry
@@ -147,6 +149,9 @@ class MainWindow(tk.Frame):
         cursor.execute(SQLCommand)
         payg = cursor.fetchone()
         payg = str(payg).strip("(,)")
+        
+        if payg == "None":
+            payg = str(payGroupCount + 1)
         # endregion PayGroupConversion
         
         # region VariablePreparation
@@ -176,6 +181,7 @@ class MainWindow(tk.Frame):
             mBox = tk.messagebox.showinfo("Success!","Import Complete")
         except:
             mBox = tk.messagebox.showinfo("Error!","Import Failed")
+            print("Failed Command: "+SQLCommand)
             connection.rollback() # undo command
             
 
