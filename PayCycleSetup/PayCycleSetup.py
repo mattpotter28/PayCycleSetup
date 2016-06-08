@@ -1,6 +1,6 @@
 # Matt Potter
 # Created May 31 2016 
-# Last Edited June 6 2016
+# Last Edited June 8 2016
 # Pay Cycle Setup
 
 import tkinter as tk
