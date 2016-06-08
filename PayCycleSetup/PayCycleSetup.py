@@ -6,6 +6,7 @@
 import tkinter as tk
 import pypyodbc
 from tkinter import ttk
+from tkinter import messagebox
 import re
 
 class MainWindow(tk.Frame):
@@ -38,7 +39,6 @@ class MainWindow(tk.Frame):
                 # get store name values from connection
                 SQLCommand = ("select [SiteName] from [POSLabor].[dbo].[NBO_Sites]")
                 cursor.execute(SQLCommand)
-                global siteNames
                 siteNames = cursor.fetchall()
 
                 w = ttk.OptionMenu(row, LocationVariable, "Site Name", *siteNames)
@@ -54,6 +54,7 @@ class MainWindow(tk.Frame):
                 # get pay group name values from connection
                 SQLCommand = ("select distinct [PayrollGroupName] from [POSLabor].[dbo].[NBO_PayGroup]")
                 cursor.execute(SQLCommand)
+                global payGroups
                 payGroups = cursor.fetchall()
                 
                 w = ttk.OptionMenu(row, PayGroupVariable, "Payroll Group Name", *payGroups)
@@ -89,6 +90,7 @@ class MainWindow(tk.Frame):
             row.pack(side="top", fill="both", padx=5, pady=5)
             lab.pack(side="left")
             w.pack(side="left", fill="both")
+            connection.commit()
         # endregion EntryCreation
                            
         # region ButtonCreation
@@ -128,59 +130,56 @@ class MainWindow(tk.Frame):
 
     
     def submit(self, cursor):
+        # region SiteConversion
         loc = LocationVariable.get()
         loc = loc.strip("(\",)")
-        #loc = convert SiteName to corresponding siteNumber
+        loc = str(loc).replace("'","%")
+        SQLCommand = ("SELECT [SiteNumber] FROM [POSLabor].[dbo].[NBO_Sites] where [SiteName] like '"+loc+"';")
+        cursor.execute(SQLCommand)
+        loc = cursor.fetchone()
+        loc = str(loc).strip("(,)")
+        # endregion SiteConversion
+               
+        # region PayGroupConversion
         payg = PayGroupVariable.get()
         payg = payg.strip("(',)")
+        SQLCommand = ("SELECT [PayGroupID] FROM [POSLabor].[dbo].[NBO_PayGroup] where [PayrollGroupName] like '"+payg+"';")
+        cursor.execute(SQLCommand)
+        payg = cursor.fetchone()
+        payg = str(payg).strip("(,)")
+        # endregion PayGroupConversion
+        
+        # region VariablePreparation
         tip = int(TipShareVariable.get())
         payc = PayCycleVariable.get()
         adp = ADPStoreCodeVariable.get()
-        insertSQL(loc, payg, tip, payc, adp)        
+        # endregion VariablePreparation
+        
+        self.insertSQL(loc, payg, tip, payc, adp)      
 
    
     def submitEdit(self, NewPayGroupName):
-        # !!! change PayGroupVariable to read-only NewPayGroupName
-        PayGroupVariable.set(str(NewPayGroupName))
-        # read-only?
+        # change PayGroupVariable to read-only NewPayGroupName
+        PayGroupVariable.set(NewPayGroupName.get())
 
-        # !!! check if NewPayGroupName already exists in NBO_Sites
-        # !!! if no, begin addition process
-            # !!! create SQL statement to insert data
-        # !!! if yes, begin update process
-            # !!! fill entries with pre-existing data from NBO_PayCycleSetup
-        flag = False
-        for name in siteNames:
-            if name == str(NewPayGroupName):
-                flag == True
-        if flag == True: # Update fields, still unsure
-            pass
-
-        # !!! create Submit Changes button, calls submitChanges
-        submitButton.config(text = "Submit Changes", command = lambda: submitChanges(cursor))        
+        # create Submit Changes button, calls submitChanges
+        submitButton.config(text = "Submit Changes")        
         self.destroy()
-
-    
-    def submitChanges(self, cursor):
-        loc = LocationVariable.get()
-        loc = loc.strip("(\",)")
-        #loc = convert SiteName to corresponding siteNumber
-        payg = PayGroupVariable.get()
-        payg = payg.strip("(',)")
-        tip = int(TipShareVariable.get())
-        payc = PayCycleVariable.get()
-        adp = ADPStoreCodeVariable.get()
-        insertSQL(loc, payg, tip, payc, adp) 
-
 
     def insertSQL(self, loc, payg, tip, payc, adp):
-        SQLCommand = "DECLARE @RT INT \
-                      EXECUTE @RT = dbo.pr_NBO_PayCycleSetup_ADD "+loc+", "+payg+", "+ tip +", "+adp+", 1, "+ payc +" \
-                      PRINT @RT" # command to add data 
-        cursor.execute(SQLCommand)
-        #connection.commit()    # save to table
-        connection.rollback()   # undo command
-        self.destroy()
+        try:
+            SQLCommand = ( "DECLARE @RT INT "\
+                           "EXECUTE @RT = dbo.pr_NBO_PayCycleSetup_ADD "+loc+", "+payg+", "+ str(tip) +", '"+adp+"', 0, "+ payc +
+                           " PRINT @RT") # command to add data 
+            cursor.execute(SQLCommand)
+            connection.commit()    # save to table
+            mBox = tk.messagebox.showinfo("Success!","Import Complete")
+        except:
+            mBox = tk.messagebox.showinfo("Error!","Import Failed")
+            connection.rollback() # undo command
+            
+
+        root.destroy()
 
 
 #region Main
