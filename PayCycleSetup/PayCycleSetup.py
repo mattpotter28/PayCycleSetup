@@ -1,6 +1,6 @@
 # Matt Potter
 # Created May 31 2016 
-# Last Edited June 9 2016
+# Last Edited June 13 2016
 # Pay Cycle Setup v2.0
 
 import tkinter as tk
@@ -164,7 +164,7 @@ class MainWindow(tk.Frame):
         entry1 = tk.Entry(t, width=35, textvariable=NewPayGroupName)
         lab2 = tk.Label(t, width=20, text="New Pay Group ID: ", anchor='w')
         entry2 = tk.Entry(t, width=35, textvariable=NewPayGroupID) 
-        submitButton = tk.Button(t, text="Add Pay Group", command= lambda: self.submitEdit(NewPayGroupName))
+        submitButton = tk.Button(t, text="Add Pay Group", command= lambda: self.submitAdd(NewPayGroupName, NewPayGroupID))
         cancelButton = tk.Button(t, text='Cancel', command=t.destroy)
         
         # pack interface
@@ -217,7 +217,6 @@ class MainWindow(tk.Frame):
             if str(NewPayGroupName.get()) in name:
                 mBox = tk.messagebox.showinfo("Error!","Name Already in Use")
                 flag = True
-        print(NewPayGroupID.get())
         for id in ids:
             id = int(str(id).strip("(,)"))
             if int(NewPayGroupID.get()) == id:
@@ -228,19 +227,20 @@ class MainWindow(tk.Frame):
             # use sql statement to UPDATE values to new values
             OldPayGroupName = str(OldPayGroupName).replace("'", "%")
 
+            # region 
             SQLCommand = ("SELECT [PayGroupID] FROM [POSLabor].[dbo].[NBO_PayGroup] " + \
                           "WHERE [PayrollGroupName] like '"+OldPayGroupName+"';")
             cursor.execute(SQLCommand)
             oldID = cursor.fetchone()
             oldID = str(oldID).strip("(,)")
 
-            SQLCommand = ("UPDATE [POSLabor].[dbo].[NBO_PayGroup] " \
-                          "SET [PayGroupID]="+str(NewPayGroupID.get())+", [PayrollGroupName]='"+str(NewPayGroupName.get())+"' "+ \
-                          "WHERE [PayrollGroupName] like '"+OldPayGroupName+"';\n" + \
-                
-                          "UPDATE [POSLabor].[dbo].[NBO_PayCycleSetup] " \
+            SQLCommand = ("UPDATE [POSLabor].[dbo].[NBO_PayCycleSetup] " \
                           "SET [PayGroupID]="+str(NewPayGroupID.get())+" " \
-                          "WHERE [PayGroupID] = "+oldID+";")              
+                          "WHERE [PayGroupID] = "+oldID+";\n" + \
+                                          
+                          "UPDATE [POSLabor].[dbo].[NBO_PayGroup] " \
+                          "SET [PayGroupID]="+str(NewPayGroupID.get())+", [PayrollGroupName]='"+str(NewPayGroupName.get())+"' "+ \
+                          "WHERE [PayrollGroupName] like '"+OldPayGroupName+"';")              
                 
             print (SQLCommand)            
             cursor.execute(SQLCommand)
@@ -251,8 +251,30 @@ class MainWindow(tk.Frame):
 
     
     def submitAdd(self, NewPayGroupName, NewPayGroupID):
+        SQLCommand = ("SELECT [PayGroupID] FROM [POSLabor].[dbo].[NBO_PayGroup];")
+        cursor.execute(SQLCommand)
+        ids = cursor.fetchall()
+        flag = False
+        for name in payGroups:
+            if str(NewPayGroupName.get()) in name:
+                mBox = tk.messagebox.showinfo("Error!","Name Already in Use")
+                flag = True
+        for id in ids:
+            id = int(str(id).strip("(,)"))
+            if int(NewPayGroupID.get()) == id:
+                mBox = tk.messagebox.showinfo("Error!","ID Already in Use")
+                flag = True
+
+        if flag == False:
+            SQLCommand = ("INSERT INTO [POSLabor].[dbo].[NBO_PayGroup] (PayGroupID, PayrollGroupName) " \
+                          "VALUES ('"+str(NewPayGroupID.get())+"', '"+str(NewPayGroupName.get())+"');")              
+                
+            print (SQLCommand)            
+            cursor.execute(SQLCommand)
+            connection.commit()
+        
         # check if values are not already used, throw errors
-        PayGroupVariable.set(name.get())
+        PayGroupVariable.set(NewPayGroupName.get())
         self.destroy()
 
 
