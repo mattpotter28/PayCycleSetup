@@ -1,7 +1,7 @@
 # Matt Potter
 # Created May 31 2016 
-# Last Edited June 8 2016
-# Pay Cycle Setup
+# Last Edited June 9 2016
+# Pay Cycle Setup v2.0
 
 import tkinter as tk
 import pypyodbc
@@ -15,7 +15,7 @@ class MainWindow(tk.Frame):
         # region InitSetup
         tk.Frame.__init__(self, *args, **kwargs)
         root.wm_title("Pay Cycle Setup")
-        root.geometry("%dx%d%+d%+d" % (410, 225, 250, 125))
+        root.geometry("%dx%d%+d%+d" % (325, 225, 250, 125))
         
         fields = ('Location', 'Pay Group', 'Tip Share', 'Pay Cycle', 'ADP Store Code')
         global cursor
@@ -91,7 +91,7 @@ class MainWindow(tk.Frame):
 
             row.pack(side="top", fill="both", padx=5, pady=5)
             lab.pack(side="left")
-            w.pack(side="left", fill="both")
+            w.pack(side="left",  expand=1)
             connection.commit()
         # endregion EntryCreation
                            
@@ -99,37 +99,82 @@ class MainWindow(tk.Frame):
         # creates submit, edit, and cancel buttons
         global submitButton
         submitButton = tk.Button(root, text='Submit', command= lambda: self.submit(cursor))
-        editButton = tk.Button(root, text='Edit/Add Pay Group', command=self.editAddWindow)
+        editButton = tk.Button(root, text='Edit Pay Group', command=self.editWindow)
+        addButton = tk.Button(root, text='Add Pay Group', command=self.addWindow)
         cancelButton = tk.Button(root, text='Cancel', command=root.destroy)
         
         submitButton.pack(side="right", padx=10, pady =5)
         editButton.pack(side="right", padx=0, pady =5)
-        cancelButton.pack(side="right", padx=10, pady=5)
+        addButton.pack(side="right", padx=10, pady=5)
+        cancelButton.pack(side="right", padx=0, pady=5)
         # endregion ButtonCreation
-
-    def editAddWindow(self):
+    
+    def editWindow(self):
         # region TopLevelSetup
         # creates another window
         t = tk.Toplevel(self)
-        t.wm_title("Edit/Add Pay Group")
-        t.geometry("%dx%d%+d%+d" % (250, 100, 250, 125))
+        t.wm_title("Edit Pay Group")
+        t.geometry("%dx%d%+d%+d" % (250, 360, 250, 125))
         # endregion TopLevelSetup
-        
+
         # region WidgetCreation
         # creates entry box and buttons
-        NewPayGroupVariable = tk.StringVar(t)
-        lab = tk.Label(t, width=20, text="Pay Group Name: ", anchor='w')
-        w = tk.Entry(t, width=35, textvariable=NewPayGroupVariable)
-        submitButton = tk.Button(t, text="Submit", command= lambda: self.submitEdit(NewPayGroupVariable))
+        OldPayGroup = tk.StringVar()
+        NewPayGroupName = tk.StringVar()
+        NewPayGroupID = tk.StringVar()
+        lab1 = tk.Label(t, text="Pay Group to Edit:", anchor='nw')
+        nameList = tk.Listbox(t, width = 120)
+        count = 0
+        for name in payGroups:
+            name = str(name).strip("(,)")
+            nameList.insert(count, name)
+            count  = count + 1
+        lab2 = tk.Label(t, width=20, text="New Pay Group Name: ", anchor='w')
+        entry2 = tk.Entry(t, width=35, textvariable=NewPayGroupName)
+        lab3 = tk.Label(t, width=20, text="New Pay Group ID: ", anchor='w')
+        entry3 = tk.Entry(t, width=35, textvariable=NewPayGroupID) 
+        submitButton = tk.Button(t, text="Submit Edit", command= lambda: self.submitEdit(nameList.get(tk.ACTIVE), NewPayGroupName, NewPayGroupID))
         cancelButton = tk.Button(t, text='Cancel', command=t.destroy)
         
         # pack interface
-        lab.pack(side="top", fill="both", padx=5, pady=5)
-        w.pack(pady=5)        
-        submitButton.pack(side="right", padx=5, pady =5)        
-        cancelButton.pack(side="right", padx=5, pady=5)
+        lab1.pack(side="top", fill="both", padx=5, pady=5, expand=1)
+        nameList.pack(side="top")
+        lab2.pack(side="top", fill="both", padx=5, pady=5, expand=1)
+        entry2.pack(side="top", pady=5, expand=1)
+        lab3.pack(side="top", fill="both", padx=5, pady=5, expand=1)
+        entry3.pack(side="top", pady=5, expand=1)  
+              
+        submitButton.pack(side="right", padx=5, pady =5, expand=1)        
+        cancelButton.pack(side="right", padx=5, pady=5, expand=1)
         #endregion WidgetCreation
 
+    def addWindow(self):
+        # region TopLevelSetup
+        # creates another window
+        t = tk.Toplevel(self)
+        t.wm_title("Add Pay Group")
+        t.geometry("%dx%d%+d%+d" % (250, 175, 250, 125))
+        # endregion TopLevelSetup
+
+        # region WidgetCreation
+        # creates entry box and buttons
+        NewPayGroupName = tk.StringVar()
+        NewPayGroupID = tk.StringVar()
+        lab1 = tk.Label(t, width=20, text="New Pay Group Name: ", anchor='w')
+        entry1 = tk.Entry(t, width=35, textvariable=NewPayGroupName)
+        lab2 = tk.Label(t, width=20, text="New Pay Group ID: ", anchor='w')
+        entry2 = tk.Entry(t, width=35, textvariable=NewPayGroupID) 
+        submitButton = tk.Button(t, text="Add Pay Group", command= lambda: self.submitEdit(NewPayGroupName))
+        cancelButton = tk.Button(t, text='Cancel', command=t.destroy)
+        
+        # pack interface
+        lab1.pack(side="top", fill="both", padx=5)
+        entry1.pack(pady=5)
+        lab2.pack(side="top", fill="both", padx=5, pady=5)
+        entry2.pack(pady=5)        
+        submitButton.pack(side="right", padx=5, pady=5)        
+        cancelButton.pack(side="right", padx=5, pady=5)
+        #endregion WidgetCreation
     
     def submit(self, cursor):
         # region SiteConversion
@@ -161,15 +206,55 @@ class MainWindow(tk.Frame):
         # endregion VariablePreparation
         
         self.insertSQL(loc, payg, tip, payc, adp)      
-
    
-    def submitEdit(self, NewPayGroupName):
-        # change PayGroupVariable to read-only NewPayGroupName
-        PayGroupVariable.set(NewPayGroupName.get())
+    def submitEdit(self, OldPayGroupName, NewPayGroupName, NewPayGroupID):       
+        # check if new values are not already used, throw errors
+        SQLCommand = ("SELECT [PayGroupID] FROM [POSLabor].[dbo].[NBO_PayGroup];")
+        cursor.execute(SQLCommand)
+        ids = cursor.fetchall()
+        flag = False
+        for name in payGroups:
+            if str(NewPayGroupName.get()) in name:
+                mBox = tk.messagebox.showinfo("Error!","Name Already in Use")
+                flag = True
+        print(NewPayGroupID.get())
+        for id in ids:
+            id = int(str(id).strip("(,)"))
+            if int(NewPayGroupID.get()) == id:
+                mBox = tk.messagebox.showinfo("Error!","ID Already in Use")
+                flag = True
+        
+        if flag == False:
+            # use sql statement to UPDATE values to new values
+            OldPayGroupName = str(OldPayGroupName).replace("'", "%")
 
-        # create Submit Changes button, calls submitChanges
-        submitButton.config(text = "Submit Changes")        
+            SQLCommand = ("SELECT [PayGroupID] FROM [POSLabor].[dbo].[NBO_PayGroup] " + \
+                          "WHERE [PayrollGroupName] like '"+OldPayGroupName+"';")
+            cursor.execute(SQLCommand)
+            oldID = cursor.fetchone()
+            oldID = str(oldID).strip("(,)")
+
+            SQLCommand = ("UPDATE [POSLabor].[dbo].[NBO_PayGroup] " \
+                          "SET [PayGroupID]="+str(NewPayGroupID.get())+", [PayrollGroupName]='"+str(NewPayGroupName.get())+"' "+ \
+                          "WHERE [PayrollGroupName] like '"+OldPayGroupName+"';\n" + \
+                
+                          "UPDATE [POSLabor].[dbo].[NBO_PayCycleSetup] " \
+                          "SET [PayGroupID]="+str(NewPayGroupID.get())+" " \
+                          "WHERE [PayGroupID] = "+oldID+";")              
+                
+            print (SQLCommand)            
+            cursor.execute(SQLCommand)
+            connection.commit()
+            # change PayGroupVariable to read-only NewPayGroupName
+            PayGroupVariable.set(NewPayGroupName.get())
+            self.destroy()
+
+    
+    def submitAdd(self, NewPayGroupName, NewPayGroupID):
+        # check if values are not already used, throw errors
+        PayGroupVariable.set(name.get())
         self.destroy()
+
 
     def insertSQL(self, loc, payg, tip, payc, adp):
         try:
