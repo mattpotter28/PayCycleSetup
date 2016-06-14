@@ -1,7 +1,7 @@
 # Matt Potter
 # Created May 31 2016 
 # Last Edited June 13 2016
-# Pay Cycle Setup v3.0.1
+# Pay Cycle Setup v3.0.2
 
 import tkinter as tk
 import pypyodbc
@@ -108,6 +108,7 @@ class MainWindow(tk.Frame):
         addButton.pack(side="right", padx=10, pady=5)
         cancelButton.pack(side="right", padx=0, pady=5)
         # endregion ButtonCreation
+
     
     def editWindow(self):
         # region TopLevelSetup
@@ -144,6 +145,7 @@ class MainWindow(tk.Frame):
         cancelButton.pack(side="right", padx=5, pady=10, expand=1)
         #endregion WidgetCreation
 
+
     def addWindow(self):
         # region TopLevelSetup
         # creates another window
@@ -167,6 +169,7 @@ class MainWindow(tk.Frame):
         submitButton.pack(side="right", padx=5, pady=5)        
         cancelButton.pack(side="right", padx=5, pady=5)
         #endregion WidgetCreation
+
     
     def submit(self, cursor):
         # region SiteConversion
@@ -195,20 +198,21 @@ class MainWindow(tk.Frame):
         tip = int(TipShareVariable.get())
         payc = PayCycleVariable.get()
         adp = ADPStoreCodeVariable.get()
+        self.insertSQL(loc, payg, tip, payc, adp)    
         # endregion VariablePreparation
-        
-        self.insertSQL(loc, payg, tip, payc, adp)      
+                          
    
     def submitEdit(self, OldPayGroupName, NewPayGroupName):       
+        # region valueCheck
         # check if new values are not already used, throw errors
-        SQLCommand = ("SELECT [PayGroupID] FROM [POSLabor].[dbo].[NBO_PayGroup];")
-        cursor.execute(SQLCommand)
-        ids = cursor.fetchall()
         flag = False
         for name in payGroups:
             if str(NewPayGroupName.get()) in name:
                 mBox = tk.messagebox.showinfo("Error!","Name Already in Use")
-                flag = True        
+                flag = True  
+        # endregion valueCheck      
+        
+        # region updateEdit
         if flag == False:
             # use sql statement to UPDATE values to new values
             OldPayGroupName = str(OldPayGroupName).replace("'", "%")
@@ -223,44 +227,52 @@ class MainWindow(tk.Frame):
             # change PayGroupVariable to read-only NewPayGroupName
             PayGroupVariable.set(NewPayGroupName.get())
             self.destroy()
+        # endregion updateEdit
 
     
     def submitAdd(self, NewPayGroupName):
+        # region valueCheck
+        # check if values are not already used, throw errors
         flag = False
         for name in payGroups:
             if str(NewPayGroupName.get()) in name:
                 mBox = tk.messagebox.showinfo("Error!","Name Already in Use")
                 flag = True
+        # endregion valueCheck
+        
+        # region updateAdd
         if flag == False:
             payGroups.insert((len(payGroups)+1), NewPayGroupName.get())
             SQLCommand = ("INSERT INTO [POSLabor].[dbo].[NBO_PayGroup] (PayrollGroupName, PayGroupID) " \
-                          "VALUES ('"+str(NewPayGroupName.get())+"', "+str(len(payGroups))+" );")              
-                
-            print (SQLCommand)         
+                          "VALUES ('"+str(NewPayGroupName.get())+"', "+str(len(payGroups))+" );")                      
             cursor.execute(SQLCommand)
             connection.commit()
-        
-        # check if values are not already used, throw errors
-        
+
         PayGroupVariable.set(NewPayGroupName.get())
         self.destroy()
+        # endregion updateAdd
 
 
     def insertSQL(self, loc, payg, tip, payc, adp):
+        # region importAttempt
         try:
+            # region runImport
             SQLCommand = ( "DECLARE @RT INT "\
                            "EXECUTE @RT = dbo.pr_NBO_PayCycleSetup_ADD "+loc+", "+payg+", "+ str(tip) +", '"+adp+"', 0, "+ payc +
                            " PRINT @RT") # command to add data 
             cursor.execute(SQLCommand)
             connection.commit()    # save to table
             mBox = tk.messagebox.showinfo("Success!","Import Complete")
+            #endregion runImport
         except:
+            # region throwError
             mBox = tk.messagebox.showinfo("Error!","Import Failed")
             print("Failed Command: "+SQLCommand)
             connection.rollback() # undo command
+            # endregion throwError
             
-
         root.destroy()
+        # endregion importAttempt
 
 
 #region Main
