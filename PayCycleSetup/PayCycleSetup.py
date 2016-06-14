@@ -1,7 +1,7 @@
 # Matt Potter
 # Created May 31 2016 
 # Last Edited June 13 2016
-# Pay Cycle Setup v2.2
+# Pay Cycle Setup v3.0
 
 import tkinter as tk
 import pypyodbc
