@@ -1,7 +1,7 @@
 # Matt Potter
 # Created May 31 2016 
 # Last Edited June 13 2016
-# Pay Cycle Setup v3.0
+# Pay Cycle Setup v3.0.1
 
 import tkinter as tk
 import pypyodbc
@@ -225,7 +225,7 @@ class MainWindow(tk.Frame):
             self.destroy()
 
     
-    def submitAdd(self, NewPayGroupName, NewPayGroupID):
+    def submitAdd(self, NewPayGroupName):
         flag = False
         for name in payGroups:
             if str(NewPayGroupName.get()) in name:
