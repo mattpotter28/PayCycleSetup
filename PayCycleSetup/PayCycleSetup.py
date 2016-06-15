@@ -160,7 +160,7 @@ class MainWindow(tk.Frame):
         NewPayGroupID = tk.StringVar()
         lab1 = tk.Label(t, width=20, text="New Pay Group Name: ", anchor='w')
         entry1 = tk.Entry(t, width=35, textvariable=NewPayGroupName)
-        submitButton = tk.Button(t, text="Add Pay Group", command= lambda: self.submitAdd(NewPayGroupName, NewPayGroupID))
+        submitButton = tk.Button(t, text="Add Pay Group", command= lambda: self.submitAdd(NewPayGroupName))
         cancelButton = tk.Button(t, text='Cancel', command=t.destroy)
         
         # pack interface
@@ -227,6 +227,8 @@ class MainWindow(tk.Frame):
             # change PayGroupVariable to read-only NewPayGroupName
             PayGroupVariable.set(NewPayGroupName.get())
             self.destroy()
+
+            
         # endregion updateEdit
 
     
@@ -249,7 +251,7 @@ class MainWindow(tk.Frame):
             connection.commit()
 
         PayGroupVariable.set(NewPayGroupName.get())
-        self.destroy()
+        self.withdraw()
         # endregion updateAdd
 
 
